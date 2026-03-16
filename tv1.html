@@ -172,16 +172,40 @@
 
     document.getElementById('btn-play-top').addEventListener('click', togglePlay);
     document.getElementById('btn-mute-top').addEventListener('click', toggleMute);
+    var isFakeFullscreen = false;
+    var originalPanelStyle = {};
+
+    function enterFakeFullscreen() {
+        var panel = document.getElementById('video-panel');
+        originalPanelStyle = { top: panel.style.top, right: panel.style.right, width: panel.style.width, borderRadius: panel.style.borderRadius };
+        panel.style.cssText += '; top:0!important; right:0!important; left:0!important; bottom:0!important; width:100%!important; height:100%!important; border-radius:0!important; border:none!important;';
+        video.style.height = 'calc(100% - 35px)';
+        isFakeFullscreen = true;
+        document.getElementById('btn-fullscreen').textContent = '✕FS';
+    }
+
+    function exitFakeFullscreen() {
+        var panel = document.getElementById('video-panel');
+        panel.style.cssText = '';
+        panel.style.display = 'block';
+        video.style.height = '225px';
+        isFakeFullscreen = false;
+        document.getElementById('btn-fullscreen').textContent = '⛶';
+    }
+
     document.getElementById('btn-fullscreen').addEventListener('click', function() {
+        if (isFakeFullscreen) { exitFakeFullscreen(); return; }
         var el = video;
         var req = el.requestFullscreen || el.webkitRequestFullscreen || el.webkitEnterFullscreen;
         if (req) {
-            Promise.resolve(req.call(el)).catch(function() {
-                window.open(HLS_URL, '_blank');
-            });
+            Promise.resolve(req.call(el)).catch(function() { enterFakeFullscreen(); });
         } else {
-            window.open(HLS_URL, '_blank');
+            enterFakeFullscreen();
         }
+    });
+
+    document.addEventListener('fullscreenchange', function() {
+        if (!document.fullscreenElement && isFakeFullscreen) exitFakeFullscreen();
     });
 
     // click sul video = play/pausa
@@ -190,4 +214,3 @@
 
 </body>
 </html>
-
