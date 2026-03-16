@@ -45,7 +45,7 @@
     }
     .tv-bar-title {
         background: var(--rainbow); -webkit-background-clip: text; color: transparent;
-        font-weight: 900; font-size: 11px; text-transform: uppercase; letter-spacing: 1px;
+        font-weight: 900; font-size: 9px; text-transform: uppercase; letter-spacing: 1px;
         flex: 1; text-align: center;
     }
     .tv-btn {
@@ -173,8 +173,15 @@
     document.getElementById('btn-play-top').addEventListener('click', togglePlay);
     document.getElementById('btn-mute-top').addEventListener('click', toggleMute);
     document.getElementById('btn-fullscreen').addEventListener('click', function() {
-        if (video.requestFullscreen) video.requestFullscreen();
-        else if (video.webkitRequestFullscreen) video.webkitRequestFullscreen();
+        var el = video;
+        var req = el.requestFullscreen || el.webkitRequestFullscreen || el.webkitEnterFullscreen;
+        if (req) {
+            Promise.resolve(req.call(el)).catch(function() {
+                window.open(HLS_URL, '_blank');
+            });
+        } else {
+            window.open(HLS_URL, '_blank');
+        }
     });
 
     // click sul video = play/pausa
@@ -183,3 +190,4 @@
 
 </body>
 </html>
+
