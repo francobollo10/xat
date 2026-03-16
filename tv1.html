@@ -35,6 +35,22 @@
         background: #000; border: 3px solid #fff; border-radius: 15px;
         overflow: hidden; animation: neonGlow 6s infinite linear;
         z-index: 99999;
+        transition: width 0.3s, height 0.3s;
+    }
+    #video-panel.expanded {
+        top: 50% !important;
+        left: 50% !important;
+        right: auto !important;
+        transform: translate(-50%, -50%);
+        width: 640px !important;
+        cursor: move;
+    }
+    #video-panel.expanded #tv-video {
+        height: 360px;
+    }
+    #video-panel.dragging {
+        transition: none;
+        cursor: grabbing;
     }
 
     /* barra top */
@@ -172,40 +188,55 @@
 
     document.getElementById('btn-play-top').addEventListener('click', togglePlay);
     document.getElementById('btn-mute-top').addEventListener('click', toggleMute);
-    var isFakeFullscreen = false;
-    var originalPanelStyle = {};
-
-    function enterFakeFullscreen() {
-        var panel = document.getElementById('video-panel');
-        originalPanelStyle = { top: panel.style.top, right: panel.style.right, width: panel.style.width, borderRadius: panel.style.borderRadius };
-        panel.style.cssText += '; top:0!important; right:0!important; left:0!important; bottom:0!important; width:100%!important; height:100%!important; border-radius:0!important; border:none!important;';
-        video.style.height = 'calc(100% - 35px)';
-        isFakeFullscreen = true;
-        document.getElementById('btn-fullscreen').textContent = '✕FS';
-    }
-
-    function exitFakeFullscreen() {
-        var panel = document.getElementById('video-panel');
-        panel.style.cssText = '';
-        panel.style.display = 'block';
-        video.style.height = '225px';
-        isFakeFullscreen = false;
-        document.getElementById('btn-fullscreen').textContent = '⛶';
-    }
+    // expanded + draggable
+    var isExpanded = false;
+    var panel = document.getElementById('video-panel');
+    var dragOffX, dragOffY, isDragging = false;
 
     document.getElementById('btn-fullscreen').addEventListener('click', function() {
-        if (isFakeFullscreen) { exitFakeFullscreen(); return; }
-        var el = video;
-        var req = el.requestFullscreen || el.webkitRequestFullscreen || el.webkitEnterFullscreen;
-        if (req) {
-            Promise.resolve(req.call(el)).catch(function() { enterFakeFullscreen(); });
+        isExpanded = !isExpanded;
+        if (isExpanded) {
+            // centra e allarga
+            var rect = panel.getBoundingClientRect();
+            panel.style.right = 'auto';
+            panel.style.top = (window.innerHeight / 2 - 200) + 'px';
+            panel.style.left = (window.innerWidth / 2 - 320) + 'px';
+            panel.style.width = '640px';
+            panel.style.transform = 'none';
+            video.style.height = '360px';
+            this.textContent = '⊡';
         } else {
-            enterFakeFullscreen();
+            panel.style.right = '20px';
+            panel.style.top = '55px';
+            panel.style.left = 'auto';
+            panel.style.width = '310px';
+            panel.style.transform = '';
+            video.style.height = '225px';
+            this.textContent = '⛶';
         }
     });
 
-    document.addEventListener('fullscreenchange', function() {
-        if (!document.fullscreenElement && isFakeFullscreen) exitFakeFullscreen();
+    // drag dalla barra
+    document.querySelector('.tv-bar').addEventListener('mousedown', function(e) {
+        if (e.target.tagName === 'BUTTON') return;
+        if (!isExpanded) return;
+        isDragging = true;
+        var rect = panel.getBoundingClientRect();
+        dragOffX = e.clientX - rect.left;
+        dragOffY = e.clientY - rect.top;
+        panel.classList.add('dragging');
+        e.preventDefault();
+    });
+
+    document.addEventListener('mousemove', function(e) {
+        if (!isDragging) return;
+        panel.style.left = (e.clientX - dragOffX) + 'px';
+        panel.style.top  = (e.clientY - dragOffY) + 'px';
+    });
+
+    document.addEventListener('mouseup', function() {
+        isDragging = false;
+        panel.classList.remove('dragging');
     });
 
     // click sul video = play/pausa
