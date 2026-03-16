@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<style>
+    :root { --rainbow: linear-gradient(to right, #ff0000, #ffff00, #00ff00, #00ffff, #ff00ff, #ff0000); }
+    body { background: transparent; margin: 0; font-family: 'Arial Black', sans-serif; overflow: hidden; }
+
+    @keyframes neonGlow {
+        0%   { border-color: #ff0000; box-shadow: 0 0 12px #ff0000; }
+        33%  { border-color: #00ff00; box-shadow: 0 0 12px #00ff00; }
+        66%  { border-color: #00ffff; box-shadow: 0 0 12px #00ffff; }
+        100% { border-color: #ff0000; box-shadow: 0 0 12px #ff0000; }
+    }
+
+    #btn-tv {
+        position: fixed; top: 45px; right: 20px;
+        width: 210px; height: 55px;
+        background: #000; border: 3px solid #fff; border-radius: 15px;
+        cursor: pointer; animation: neonGlow 6s infinite linear;
+        display: flex; justify-content: center; align-items: center;
+        z-index: 99999; transition: transform 0.2s;
+    }
+    #btn-tv:hover { transform: scale(1.04); }
+
+    .btn-label {
+        background: var(--rainbow); -webkit-background-clip: text; color: transparent;
+        font-weight: 900; font-size: 13px; text-transform: uppercase; text-align: center;
+    }
+
+    #video-panel {
+        display: none;
+        position: fixed; top: 45px; right: 20px;
+        width: 400px;
+        background: #000; border: 3px solid #fff; border-radius: 15px;
+        overflow: hidden; animation: neonGlow 6s infinite linear;
+        z-index: 99999;
+    }
+
+    /* barra top */
+    .tv-bar {
+        background: #111;
+        display: flex; align-items: center;
+        padding: 6px 10px; gap: 8px;
+    }
+    .tv-bar-title {
+        background: var(--rainbow); -webkit-background-clip: text; color: transparent;
+        font-weight: 900; font-size: 11px; text-transform: uppercase; letter-spacing: 1px;
+        flex: 1; text-align: center;
+    }
+    .tv-btn {
+        background: #222; border: 1px solid #444; border-radius: 8px;
+        color: #fff; font-size: 13px; cursor: pointer;
+        padding: 4px 9px; line-height: 1;
+        transition: background 0.15s; white-space: nowrap;
+        font-family: 'Arial Black', sans-serif;
+    }
+    .tv-btn:hover { background: #333; }
+    .tv-btn.active { border-color: #ff4444; color: #ff4444; }
+
+    /* video */
+    #tv-video {
+        display: block; width: 100%; height: 225px;
+        background: #000; cursor: pointer;
+    }
+
+    /* barra bottom */
+    #tv-bar-bottom {
+        background: #0d0d0d;
+        display: flex; align-items: center;
+        padding: 7px 10px; gap: 8px;
+    }
+    #tv-bar-bottom .tv-btn { font-size: 14px; padding: 5px 10px; }
+
+    #volume-slider {
+        flex: 1;
+        -webkit-appearance: none;
+        appearance: none;
+        height: 4px; border-radius: 2px;
+        background: #444; outline: none; cursor: pointer;
+    }
+    #volume-slider::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        appearance: none;
+        width: 14px; height: 14px; border-radius: 50%;
+        background: #fff; cursor: pointer;
+    }
+
+    #live-badge {
+        background: #ff2222; color: #fff;
+        font-size: 10px; font-weight: 900; letter-spacing: 1px;
+        padding: 2px 7px; border-radius: 5px;
+        text-transform: uppercase;
+    }
+
+    #status-msg {
+        color: #888; font-size: 10px; text-align: center;
+        padding: 3px 0; background: #0a0a0a;
+        letter-spacing: 1px; font-family: Arial, sans-serif;
+    }
+</style>
+</head>
+<body>
+
+    <div id="btn-tv">
+        <div class="btn-label">📺 GUARDA LA NOSTRA TV</div>
+    </div>
+
+    <div id="video-panel">
+
+        <!-- barra superiore -->
+        <div class="tv-bar">
+            <button class="tv-btn" id="close-tv">✕ CHIUDI</button>
+            <div class="tv-bar-title">📺 LIVE TV</div>
+            <button class="tv-btn" id="btn-play-top">⏸</button>
+            <button class="tv-btn" id="btn-mute-top">🔊</button>
+        </div>
+
+        <video id="tv-video" playsinline autoplay></video>
+
+        <div id="status-msg">Connessione in corso...</div>
+
+        <!-- barra inferiore -->
+        <div id="tv-bar-bottom">
+            <span id="live-badge">● LIVE</span>
+            <button class="tv-btn" id="btn-play-bot">⏸</button>
+            <button class="tv-btn" id="btn-mute-bot">🔊</button>
+            <input type="range" id="volume-slider" min="0" max="1" step="0.05" value="1">
+        </div>
+
+    </div>
+
+<script src="https://cdn.jsdelivr.net/npm/hls.js@latest/dist/hls.min.js"></script>
+<script>
+    var HLS_URL = 'https://videoprova.streamsag.com:8080/hls/aghino/index.m3u8';
+    var video = document.getElementById('tv-video');
+    var hls = null;
+
+    function initPlayer() {
+        document.getElementById('status-msg').textContent = 'Connessione in corso...';
+
+        if (Hls.isSupported()) {
+            hls = new Hls({ liveSyncDurationCount: 3, enableWorker: true });
+            hls.loadSource(HLS_URL);
+            hls.attachMedia(video);
+            hls.on(Hls.Events.MANIFEST_PARSED, function() {
+                video.play();
+                document.getElementById('status-msg').textContent = '';
+            });
+            hls.on(Hls.Events.ERROR, function(e, data) {
+                if (data.fatal) {
+                    document.getElementById('status-msg').textContent = '⚠ Errore stream — riprovando...';
+                    setTimeout(initPlayer, 4000);
+                }
+            });
+        } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+            // Safari nativo
+            video.src = HLS_URL;
+            video.play();
+            document.getElementById('status-msg').textContent = '';
+        } else {
+            document.getElementById('status-msg').textContent = '⚠ Browser non supportato';
+        }
+    }
+
+    function destroyPlayer() {
+        if (hls) { hls.destroy(); hls = null; }
+        video.pause();
+        video.src = '';
+        document.getElementById('status-msg').textContent = '';
+    }
+
+    function setPlayState(playing) {
+        var icon = playing ? '⏸' : '▶';
+        document.getElementById('btn-play-top').textContent = icon;
+        document.getElementById('btn-play-bot').textContent = icon;
+    }
+    function setMuteState(muted) {
+        var icon = muted ? '🔇' : '🔊';
+        document.getElementById('btn-mute-top').textContent = icon;
+        document.getElementById('btn-mute-bot').textContent = icon;
+        document.getElementById('btn-mute-top').classList.toggle('active', muted);
+        document.getElementById('btn-mute-bot').classList.toggle('active', muted);
+    }
+
+    function togglePlay() {
+        if (video.paused) { video.play(); setPlayState(true); }
+        else { video.pause(); setPlayState(false); }
+    }
+    function toggleMute() {
+        video.muted = !video.muted;
+        setMuteState(video.muted);
+    }
+
+    document.getElementById('btn-tv').addEventListener('click', function() {
+        this.style.display = 'none';
+        document.getElementById('video-panel').style.display = 'block';
+        initPlayer();
+    });
+
+    document.getElementById('close-tv').addEventListener('click', function() {
+        destroyPlayer();
+        document.getElementById('video-panel').style.display = 'none';
+        document.getElementById('btn-tv').style.display = 'flex';
+    });
+
+    document.getElementById('btn-play-top').addEventListener('click', togglePlay);
+    document.getElementById('btn-play-bot').addEventListener('click', togglePlay);
+    document.getElementById('btn-mute-top').addEventListener('click', toggleMute);
+    document.getElementById('btn-mute-bot').addEventListener('click', toggleMute);
+
+    document.getElementById('volume-slider').addEventListener('input', function() {
+        video.volume = parseFloat(this.value);
+        if (video.volume === 0) {
+            video.muted = true; setMuteState(true);
+        } else {
+            video.muted = false; setMuteState(false);
+        }
+    });
+
+    // click sul video = play/pausa
+    video.addEventListener('click', togglePlay);
+</script>
+
+</body>
+</html>
